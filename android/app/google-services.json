@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "4139193886",
+    "project_id": "ticketbooking-df3ed",
+    "storage_bucket": "ticketbooking-df3ed.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:4139193886:android:ca1d8f2cbe15d208a8400f",
+        "android_client_info": {
+          "package_name": "com.example.ticket_booking"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBiPBwubo8x0lNobWr3q4hooWsG2usluh8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

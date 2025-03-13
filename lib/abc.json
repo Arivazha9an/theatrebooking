@@ -1,0 +1,662 @@
+{
+    "theatres": {
+        "KamalaCinemas": {
+            "name": "Kamala Cinemas",
+            "city": "Chennai",
+            "location": "Arcot Road, Porur, Chennai",
+            "tax": 10,
+            "movies": {
+                "POR_THOZHIL": {
+                    "title": "POR THOZHIL",
+                    "language": "Tamil",
+                    "genre": "Drama, Thriller",
+                    "format": "2D",
+                    "duration": "2h 20m",
+                    "poster": "https://upload.wikimedia.org/wikipedia/en/5/58/Por_Thozhil.jpg",
+                    "trailer": "https://www.youtube.com/watch?v=CfKZUZR1UDk",
+                    "plot": "A rookie cop teams up with a veteran lawman to find a serial killer.",
+                    "rating": 93,
+                    "cast": {
+                        "0": {
+                            "name": "Ashok Selvan",
+                            "image": "https://static.toiimg.com/photo/101059090.cms"
+                        },
+                        "1": {
+                            "name": "Nikhila Vimal",
+                            "image": "https://imagesvs.oneindia.com/ph-big/2023/09/por-thozhil-fame-nikhila-vimal-s-saree-look-made-wow-among-fans_169494268870.jpg"
+                        }
+                    },
+                    "crew": {
+                        "0": {
+                            "name": "Vignesh Raja",
+                            "image": "https://example.com/director.jpg"
+                        }
+                    },
+                    "showtimes": {
+                        "20-03-2025": {
+                            "10:00 AM": {
+                                "end": "1:40 PM",
+                                "layout": {
+                                    "0": [
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "B",
+                                        "V",
+                                        "V"
+                                    ],
+                                    "1": [
+                                        "S",
+                                        "B",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "B",
+                                        "X",
+                                        "V",
+                                        "V",
+                                        "V"
+                                    ],
+                                    "2": [
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "B",
+                                        "S",
+                                        "S"
+                                    ],
+                                    "3": [
+                                        "B",
+                                        "B",
+                                        "B",
+                                        "X",
+                                        "X",
+                                        "X",
+                                        "X",
+                                        "B",
+                                        "B",
+                                        "B"
+                                    ],
+                                    "4": [
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S"
+                                    ]
+                                },
+                                "pricing": {
+                                    "0": 120,
+                                    "1": 120,
+                                    "2": 140,
+                                    "3": 150,
+                                    "4": 160
+                                }
+                            },
+                            "01:00 PM": {
+                                "end": "3:40 PM",
+                                "layout": {
+                                    "0": [
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "V",
+                                        "V",
+                                        "V"
+                                    ],
+                                    "1": [
+                                        "S",
+                                        "B",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "B",
+                                        "X",
+                                        "V",
+                                        "V",
+                                        "V"
+                                    ],
+                                    "2": [
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "B",
+                                        "S",
+                                        "S"
+                                    ],
+                                    "3": [
+                                        "B",
+                                        "B",
+                                        "B",
+                                        "X",
+                                        "X",
+                                        "X",
+                                        "X",
+                                        "B",
+                                        "B",
+                                        "B"
+                                    ],
+                                    "4": [
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S"
+                                    ]
+                                },
+                                "pricing": {
+                                    "0": 120,
+                                    "1": 120,
+                                    "2": 140,
+                                    "3": 150,
+                                    "4": 160
+                                }
+                            }
+                        },
+                        "25-03-2025": {
+                            "10:00 AM": {
+                                "end": "1:40 PM",
+                                "layout": {
+                                    "0": [
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "B",
+                                        "V",
+                                        "V"
+                                    ],
+                                    "1": [
+                                        "S",
+                                        "B",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "B",
+                                        "X",
+                                        "V",
+                                        "V",
+                                        "V"
+                                    ],
+                                    "2": [
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "B",
+                                        "S",
+                                        "S"
+                                    ],
+                                    "3": [
+                                        "B",
+                                        "B",
+                                        "B",
+                                        "X",
+                                        "X",
+                                        "X",
+                                        "X",
+                                        "B",
+                                        "B",
+                                        "B"
+                                    ],
+                                    "4": [
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S"
+                                    ]
+                                },
+                                "pricing": {
+                                    "0": 120,
+                                    "1": 120,
+                                    "2": 140,
+                                    "3": 150,
+                                    "4": 160
+                                }
+                            },
+                            "01:00 PM": {
+                                "end": "3:40 PM",
+                                "layout": {
+                                    "0": [
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "V",
+                                        "V",
+                                        "V"
+                                    ],
+                                    "1": [
+                                        "S",
+                                        "B",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "B",
+                                        "X",
+                                        "V",
+                                        "V",
+                                        "V"
+                                    ],
+                                    "2": [
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "B",
+                                        "S",
+                                        "S"
+                                    ],
+                                    "3": [
+                                        "B",
+                                        "B",
+                                        "B",
+                                        "X",
+                                        "X",
+                                        "X",
+                                        "X",
+                                        "B",
+                                        "B",
+                                        "B"
+                                    ],
+                                    "4": [
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S"
+                                    ]
+                                },
+                                "pricing": {
+                                    "0": 120,
+                                    "1": 120,
+                                    "2": 140,
+                                    "3": 150,
+                                    "4": 160
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "SathyamCinemas": {
+            "name": "Sathyam Cinemas",
+            "city": "Chennai",
+            "location": "Royapettah, Chennai",
+            "tax": 12,
+            "movies": {
+                "LEO": {
+                    "title": "LEO",
+                    "language": "Tamil",
+                    "genre": "Action, Thriller",
+                    "format": "IMAX 2D",
+                    "duration": "2h 44m",
+                    "poster": "https://upload.wikimedia.org/wikipedia/en/thumb/7/75/Leo_%282023_Indian_film%29.jpg/220px-Leo_%282023_Indian_film%29.jpg",
+                    "trailer": "https://www.youtube.com/watch?v=LeoTrailer",
+                    "plot": "A gripping action thriller featuring a battle between power and morality.",
+                    "rating": 95,
+                    "cast": {
+                        "0": {
+                            "name": "Vijay",
+                            "image": "https://static.toiimg.com/photo/101059090.cms"
+                        },
+                        "1": {
+                            "name": "Trisha Krishnan",
+                            "image": "https://images.news18.com/ibnkhabar/uploads/2023/04/trisha.jpg"
+                        }
+                    },
+                    "crew": {
+                        "0": {
+                            "name": "Lokesh Kanagaraj",
+                            "image": "https://example.com/lokesh.jpg"
+                        }
+                    },
+                    "showtimes": {
+                        "20-03-2025": {
+                            "9:00 AM": {
+                                "end": "12:00 PM",
+                                "layout": {
+                                    "0": [
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "V",
+                                        "V",
+                                        "V"
+                                    ],
+                                    "1": [
+                                        "S",
+                                        "B",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "B",
+                                        "X",
+                                        "V",
+                                        "V",
+                                        "V"
+                                    ],
+                                    "2": [
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "B",
+                                        "S",
+                                        "S"
+                                    ],
+                                    "3": [
+                                        "B",
+                                        "B",
+                                        "B",
+                                        "X",
+                                        "X",
+                                        "X",
+                                        "X",
+                                        "B",
+                                        "B",
+                                        "B"
+                                    ],
+                                    "4": [
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S"
+                                    ]
+                                },
+                                "pricing": {
+                                    "0": 150,
+                                    "1": 150,
+                                    "2": 170,
+                                    "3": 180,
+                                    "4": 190
+                                }
+                            },
+                            "3:00 PM": {
+                                "end": "6:00 PM",
+                                "layout": {
+                                    "0": [
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "V",
+                                        "V",
+                                        "V"
+                                    ],
+                                    "1": [
+                                        "S",
+                                        "B",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "B",
+                                        "X",
+                                        "V",
+                                        "V",
+                                        "V"
+                                    ],
+                                    "2": [
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "B",
+                                        "S",
+                                        "S"
+                                    ],
+                                    "3": [
+                                        "B",
+                                        "B",
+                                        "B",
+                                        "X",
+                                        "X",
+                                        "X",
+                                        "X",
+                                        "B",
+                                        "B",
+                                        "B"
+                                    ],
+                                    "4": [
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S"
+                                    ]
+                                },
+                                "pricing": {
+                                    "0": 150,
+                                    "1": 150,
+                                    "2": 170,
+                                    "3": 180,
+                                    "4": 190
+                                }
+                            }
+                        },
+                        "25-03-2025": {
+                            "9:00 AM": {
+                                "end": "12:00 PM",
+                                "layout": {
+                                    "0": [
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "V",
+                                        "V",
+                                        "V"
+                                    ],
+                                    "1": [
+                                        "S",
+                                        "B",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "B",
+                                        "X",
+                                        "V",
+                                        "V",
+                                        "V"
+                                    ],
+                                    "2": [
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "B",
+                                        "S",
+                                        "S"
+                                    ],
+                                    "3": [
+                                        "B",
+                                        "B",
+                                        "B",
+                                        "X",
+                                        "X",
+                                        "X",
+                                        "X",
+                                        "B",
+                                        "B",
+                                        "B"
+                                    ],
+                                    "4": [
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S"
+                                    ]
+                                },
+                                "pricing": {
+                                    "0": 150,
+                                    "1": 150,
+                                    "2": 170,
+                                    "3": 180,
+                                    "4": 190
+                                }
+                            },
+                            "3:00 PM": {
+                                "end": "6:00 PM",
+                                "layout": {
+                                    "0": [
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "V",
+                                        "V",
+                                        "V"
+                                    ],
+                                    "1": [
+                                        "S",
+                                        "B",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "B",
+                                        "X",
+                                        "V",
+                                        "V",
+                                        "V"
+                                    ],
+                                    "2": [
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "B",
+                                        "S",
+                                        "S"
+                                    ],
+                                    "3": [
+                                        "B",
+                                        "B",
+                                        "B",
+                                        "X",
+                                        "X",
+                                        "X",
+                                        "X",
+                                        "B",
+                                        "B",
+                                        "B"
+                                    ],
+                                    "4": [
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "S",
+                                        "X",
+                                        "S"
+                                    ]
+                                },
+                                "pricing": {
+                                    "0": 150,
+                                    "1": 150,
+                                    "2": 170,
+                                    "3": 180,
+                                    "4": 190
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
