@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 import 'package:ticket_booking/Screens/TicketQR.dart';
 import 'package:ticket_booking/Widgets/CustomDivider.dart';
 import 'package:ticket_booking/const/colors.dart';
-
+import 'package:url_launcher/url_launcher.dart';
 
 class CheckOutScreen extends StatefulWidget {
   final String theatreName;
@@ -13,7 +14,7 @@ class CheckOutScreen extends StatefulWidget {
   final int noofSeats;
   final String movieTitle;
   final String selectedDate;
-  // final String date;
+
   const CheckOutScreen({
     super.key,
     required this.theatreName,
@@ -22,7 +23,7 @@ class CheckOutScreen extends StatefulWidget {
     required this.totalPrice,
     required this.noofSeats,
     required this.movieTitle,
-    required this.selectedDate, // ✅ Corrected variable
+    required this.selectedDate,
   });
 
   @override
@@ -31,44 +32,173 @@ class CheckOutScreen extends StatefulWidget {
 
 class _CheckOutScreenState extends State<CheckOutScreen> {
   late Map<String, dynamic> movieData;
-  late int bookingCharge;
+  int bookingCharge = 10;
   late num taxRate;
-  late String formattedSeat;
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadMovieData();
+    _fetchMovieData();
   }
 
+  /// ✅ Format selected date
   String formattedDate() {
-    DateTime date = DateFormat("dd.MM.yyyy").parse(widget.selectedDate);
+    DateTime date = DateFormat("dd-MM-yyyy").parse(widget.selectedDate);
     return DateFormat("EEEE, d MMM").format(date);
   }
 
-  void _loadMovieData() {
-    // for (var theatre in theatreData["theatres"].values) {
-    //   if (theatre["movies"].containsKey(widget.movieTitle)) {
-    //     movieData = theatre["movies"][widget.movieTitle];
-    //     bookingCharge = theatre["tax"];
-    //     taxRate = bookingCharge * 0.18; // Example tax calculation (18%)
-    //     break;
-    //   }
-    // }
+  /// 🔥 Fetch movie & theatre data from Firebase
+  Future<void> _fetchMovieData() async {
+    DatabaseReference dbRef = FirebaseDatabase.instance.ref("theatres");
+
+    try {
+      DatabaseEvent event = await dbRef.once();
+      Map<String, dynamic> theatres =
+          Map<String, dynamic>.from(event.snapshot.value as Map);
+
+      for (var theatre in theatres.values) {
+        if (theatre["name"] == widget.theatreName &&
+            theatre["movies"].containsKey(widget.movieTitle)) {
+          setState(() {
+            movieData =
+                Map<String, dynamic>.from(theatre["movies"][widget.movieTitle]);
+            bookingCharge = theatre["tax"] ?? 20; // Default ₹20
+            taxRate = bookingCharge * 0.18; // 18% tax
+            isLoading = false;
+          });
+          return;
+        }
+      }
+    } catch (error) {
+      print("Error fetching movie data: $error");
+    }
+
+    setState(() {
+      isLoading = false;
+    });
   }
 
+  Future<void> _updateSeatsInFirebase() async {
+    try {
+      // 🔍 Step 1: Get All Theatres
+      DatabaseReference theatreRef = FirebaseDatabase.instance.ref("theatres");
+      DatabaseEvent theatreEvent = await theatreRef.once();
+
+      Map<String, dynamic> allTheatres =
+          Map<String, dynamic>.from(theatreEvent.snapshot.value as Map);
+
+      print("🎭 Available Theatres: ${allTheatres.keys}");
+
+      // 🛠 Step 2: Format Firebase Path
+      String theatreKey = widget.theatreName.replaceAll(" ", "");
+      String movieKey = widget.movieTitle.toUpperCase().replaceAll(" ", "_");
+
+      String firebasePath =
+          "theatres/$theatreKey/movies/$movieKey/showtimes/${widget.selectedDate}/${widget.showTime}/layout";
+
+      print("🎯 Fetching seat layout from: $firebasePath");
+
+      DatabaseReference seatsRef = FirebaseDatabase.instance.ref(firebasePath);
+      DatabaseEvent event = await seatsRef.once();
+
+      // 🚨 Step 3: Handle Missing Data
+      if (event.snapshot.value == null) {
+        print("🚨 Seat layout not found! Check database structure.");
+        return;
+      }
+
+      // ✅ Convert Firebase Data to a Proper List<List<String>>
+      var snapshot = event.snapshot.value;
+      List<List<String>> seatLayout = (snapshot as List<dynamic>)
+          .map((row) =>
+              (row as List<dynamic>).map((seat) => seat.toString()).toList())
+          .toList();
+
+      print("🎭 Seat Layout Before Update: $seatLayout");
+
+      // 🔥 Step 4: Update Selected Seats
+      for (String seat in widget.selectedSeats) {
+        // ✅ Fix: Convert seat format if necessary (Handles "0-0" cases)
+        if (seat.contains("-")) {
+          List<String> parts = seat.split("-");
+          int rowNumber = int.parse(parts[0]);
+          int colNumber = int.parse(parts[1]);
+
+          seat = "${String.fromCharCode(65 + rowNumber)}${colNumber + 1}";
+          print("🔄 Converted Seat: $seat");
+        }
+
+        // 🔢 Convert Seat to Row & Column
+        int row = seat.codeUnitAt(0) - 65; // 'A' → 0, 'B' → 1, etc.
+        int col = int.parse(seat.substring(1)) - 1;
+
+        // ✅ Prevent Out-of-Bounds Errors
+        if (row < 0 ||
+            row >= seatLayout.length ||
+            col < 0 ||
+            col >= seatLayout[row].length) {
+          print("🚨 Seat $seat is out of bounds! Row: $row, Col: $col");
+          continue;
+        }
+
+        // ✅ Check if Seat is Available
+        if (seatLayout[row][col] == "S" || seatLayout[row][col] == "V") {
+          seatLayout[row][col] = "B"; // Mark as booked
+          print("✅ Seat $seat booked successfully!");
+        } else {
+          print("⚠️ Seat $seat is already booked.");
+        }
+      }
+
+      // 🎭 Debug: Show Updated Layout
+      print("🎭 Seat Layout After Update: $seatLayout");
+
+      // 🔥 Step 5: Write Updated Data to Firebase
+      await seatsRef.set(seatLayout).then((_) {
+        print("🔥 Data successfully updated in Firebase!");
+      }).catchError((error) {
+        print("🚨 Firebase Write Error: $error");
+      });
+    } catch (e) {
+      print("🔥 Error updating seats: $e");
+    }
+  }
+
+  /// ✅ Convert seat format from `"0-1"` to `"A1"`
+  List<String> formatSeats(List<String> seats) {
+    return seats.map((seat) {
+      List<String> parts = seat.split("-");
+      String rowLetter = String.fromCharCode(65 + int.parse(parts[0]));
+      return "$rowLetter${int.parse(parts[1]) + 1}";
+    }).toList();
+  }
+
+  /// ✅ Generate Order ID
   String generateOrderId() {
     int timestamp = DateTime.now().millisecondsSinceEpoch;
-    int date = DateTime.now().day;
-    int month = DateTime.now().month;
-    int yr = DateTime.now().year;
-    return "$date$month$yr$timestamp";
+    return "${widget.selectedDate.replaceAll('-', '')}$timestamp";
   }
 
-  num get totalPrice => widget.totalPrice + bookingCharge + (taxRate * 2);
+  /// ✅ Calculate final price with taxes
+  num get finalTotalPrice => widget.totalPrice + bookingCharge + (taxRate * 2);
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (movieData.isEmpty) {
+      return Scaffold(
+        body: const Center(child: Text("Movie data not found!")),
+      );
+    }
+
+    List<String> formattedSeats = formatSeats(widget.selectedSeats);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -112,13 +242,11 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${movieData["title"]}( ${movieData["language"]} ${movieData["format"]})',
+                                '${movieData["title"]} (${movieData["language"]} ${movieData["format"]})',
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold, fontSize: 16),
                               ),
-                              SizedBox(
-                                height: 40,
-                              ),
+                              const SizedBox(height: 40),
                               Text(
                                   '${movieData["rating"]} • ${movieData["language"]} • ${movieData["format"]}',
                                   style: const TextStyle(color: Colors.grey)),
@@ -130,11 +258,10 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
                   ),
                   const SizedBox(height: 25),
                   TicketDivider(
-                    height: 10,
-                    dashWidth: 8,
-                    dashHeight: 2,
-                    color: Colors.grey,
-                  ),
+                      height: 10,
+                      dashWidth: 8,
+                      dashHeight: 2,
+                      color: Colors.grey),
                   const SizedBox(height: 10),
                   Padding(
                     padding: const EdgeInsets.all(20.0),
@@ -151,32 +278,22 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
                             const SizedBox(height: 10),
                             Wrap(
                               spacing: 8,
-                              children: widget.selectedSeats.map((seat) {
-                                List<String> parts = seat
-                                    .split("-"); // Split "0-1" into ["0", "1"]
-                                String rowLetter = String.fromCharCode(65 +
-                                    int.parse(parts[
-                                        0])); // Convert row index to A, B, C...
-                                formattedSeat =
-                                    "$rowLetter-${int.parse(parts[1]) + 1}"; // Convert to "A-1"
-
+                              children: formattedSeats.map((seat) {
                                 return Container(
                                   padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
                                     border: Border.all(color: amber, width: 1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: Text(
-                                    formattedSeat, // ✅ Shows seat as "A-1"
-                                    style: const TextStyle(
-                                        color: grey, fontSize: 12),
-                                  ),
+                                  child: Text(seat,
+                                      style: const TextStyle(
+                                          color: grey, fontSize: 12)),
                                 );
                               }).toList(),
                             ),
                           ],
                         ),
-                        Spacer(),
+                        const Spacer(),
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -204,58 +321,72 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
               ),
             ),
             const SizedBox(height: 20),
+
             // 📜 Booking Details
-            Text('Booking Details',
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            _buildDetailRow(
-                '${widget.noofSeats} X Tickets', '₹${totalPrice.toString()}'),
-            const Divider(),
-            Text('Taxes & Fees',
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            _buildDetailRow('Seats', formattedSeats.join(", ")),
+            _buildDetailRow('${widget.noofSeats} X Tickets',
+                '₹${widget.totalPrice.toStringAsFixed(2)}'),
             _buildDetailRow('Booking Charge', '₹$bookingCharge'),
-            _buildDetailRow('CGST (9%)', '₹${(taxRate).toStringAsFixed(2)}'),
-            _buildDetailRow('SGST (9%)', '₹${(taxRate).toStringAsFixed(2)}'),
-            const Divider(),
-            const Spacer(),
+            _buildDetailRow(
+                'Total Amount', '₹${finalTotalPrice.toStringAsFixed(2)}'),
+            Spacer(
+              flex: 1,
+            ),
+
             // 💳 Pay Now Button
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6)),
+                  backgroundColor: blue,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                 ),
-                backgroundColor: blue,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              ),
-              onPressed: () {
-                String orderId = generateOrderId();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => TicketScreen(
-                      theatreName: widget.theatreName,
-                      movieName: movieData["title"],
-                      showTime: widget.showTime,
-                      selectedSeats: widget.selectedSeats.map((seat) {
-                        List<String> parts = seat.split("-");
-                        String rowLetter = String.fromCharCode(65 + int.parse(parts[0]));
-                        return "$rowLetter-${int.parse(parts[1]) + 1}";
-                      }).toList(),
-                      totalPrice: totalPrice.toInt(),
-                      noofSeats: widget.noofSeats,
-                      movieLanguage: movieData["language"],
-                      date: widget.selectedDate,
-                      movieFormat: movieData["format"],
-                      movieImage: movieData["poster"],
-                      orderId: orderId,
-                    ),
+                onPressed: () async {
+                  await _updateSeatsInFirebase();
+                }
+                //() {
+                //   Navigator.push(
+                //       context,
+                //       MaterialPageRoute(
+                //         builder: (context) => TicketScreen(
+                //           theatreName: widget.theatreName,
+                //           movieName: movieData["title"],
+                //           showTime: widget.showTime,
+                //           selectedSeats: formattedSeats,
+                //           totalPrice: finalTotalPrice.toInt(),
+                //           noofSeats: widget.noofSeats,
+                //           movieLanguage: movieData["language"],
+                //           date: widget.selectedDate,
+                //           movieFormat: movieData["format"],
+                //           movieImage: movieData["poster"],
+                //           orderId: generateOrderId(),
+                //         ),
+                //       ));
+                // }
+                ,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "₹${finalTotalPrice.toDouble()}",
+                        style: TextStyle(color: white),
+                      ),
+                      Text('|', style: const TextStyle(color: white)),
+                      Row(
+                        children: [
+                          Text('Pay Now', style: const TextStyle(color: white)),
+                        ],
+                      ),
+                    ],
                   ),
-                );
-              },
-              child: Text("Pay ₹${totalPrice.toDouble()}",
-                  style: TextStyle(fontSize: 16, color: white)),
+                ),
+              ),
             ),
           ],
         ),

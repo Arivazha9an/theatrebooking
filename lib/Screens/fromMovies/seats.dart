@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ticket_booking/Screens/CheckOut.dart';
+import 'package:ticket_booking/Screens/Seats.dart';
 import 'package:ticket_booking/const/colors.dart';
 
 class TheatreSeatSelectionScreen extends StatefulWidget {
@@ -96,6 +97,22 @@ class _TheatreSeatSelectionScreenState
       ),
       body: Column(
         children: [
+          const SizedBox(height: 20),
+          const Text("Screen This Way",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: ClipPath(
+              clipper: ScreenClipper(),
+              child: Container(
+                width: double.infinity,
+                height: 20,
+                color: Colors.grey[700],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
           // 🎬 ShowTime Selector
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -108,7 +125,7 @@ class _TheatreSeatSelectionScreenState
                   },
                   child: Container(
                     height: 35,
-                    margin: const EdgeInsets.symmetric(horizontal: 40),
+                    margin: const EdgeInsets.symmetric(horizontal: 50),
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
@@ -132,87 +149,136 @@ class _TheatreSeatSelectionScreenState
 
           const SizedBox(height: 20),
 
-          // 🪑 Seat Layout
+          // 🪑 Seat Layout with Scroll & Zoom
           Expanded(
-            child: Column(
-              children: List.generate(seatLayout.length, (rowIndex) {
-                int price = pricing[rowIndex] ?? 120;
-                Widget priceWidget = (lastPrice != price || rowIndex == 0)
-                    ? Column(
+            child: InteractiveViewer(
+              boundaryMargin: EdgeInsets.all(20),
+              minScale: 0.8, // Minimum zoom level
+              maxScale: 1.5, // Maximum zoom level
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal, // 👈 Horizontal scrolling
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.vertical, // 👈 Vertical scrolling
+                  child: Column(
+                    children: List.generate(seatLayout.length, (rowIndex) {
+                      int price = pricing[rowIndex] ?? 120;
+                      Widget priceWidget = (lastPrice != price || rowIndex == 0)
+                          ? Column(
+                              children: [
+                                Text(
+                                  "₹$price",
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 4),
+                              ],
+                            )
+                          : const SizedBox.shrink();
+                      lastPrice = price;
+
+                      return Column(
                         children: [
-                          Text(
-                            "₹$price",
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
+                          priceWidget,
+                          Row(
+                            children: seatLayout[rowIndex]
+                                .asMap()
+                                .entries
+                                .map<Widget>((entry) {
+                              int colIndex = entry.key;
+                              String seat = entry.value;
+
+                              if (seat == "X") return const SizedBox(width: 30);
+
+                              Color seatColor = seat == "B"
+                                  ? Colors.grey
+                                  : (selectedSeats
+                                          .contains("$rowIndex-$colIndex")
+                                      ? blue
+                                      : Colors.white);
+                              Color txtColor = seat == "B"
+                                  ? black
+                                  : (selectedSeats
+                                          .contains("$rowIndex-$colIndex")
+                                      ? white
+                                      : black);
+
+                              return GestureDetector(
+                                onTap: () {
+                                  if (seat != "B") {
+                                    setState(() {
+                                      String seatKey = "$rowIndex-$colIndex";
+                                      selectedSeats.contains(seatKey)
+                                          ? selectedSeats.remove(seatKey)
+                                          : selectedSeats.add(seatKey);
+                                    });
+                                  }
+                                },
+                                child: Container(
+                                  margin: const EdgeInsets.all(2),
+                                  width: 28,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                    color: seatColor,
+                                    border: Border.all(color: Colors.black),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    "${String.fromCharCode(65 + rowIndex)}${colIndex + 1}",
+                                    style: TextStyle(
+                                        fontSize: 12, color: txtColor),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
                           ),
-                          const SizedBox(height: 4),
                         ],
-                      )
-                    : const SizedBox.shrink();
-                lastPrice = price;
-
-                return Column(
-                  children: [
-                    priceWidget,
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: seatLayout[rowIndex]
-                          .asMap()
-                          .entries
-                          .map<Widget>((entry) {
-                        int colIndex = entry.key;
-                        String seat = entry.value;
-
-                        if (seat == "X") return const SizedBox(width: 30);
-
-                        Color seatColor = seat == "B"
-                            ? Colors.grey
-                            : (selectedSeats.contains("$rowIndex-$colIndex")
-                                ? blue
-                                : Colors.white);
-                        Color txtColor = seat == "B"
-                            ? black
-                            : (selectedSeats.contains("$rowIndex-$colIndex")
-                                ? white
-                                : black);
-
-                        return GestureDetector(
-                          onTap: () {
-                            if (seat != "B") {
-                              setState(() {
-                                String seatKey = "$rowIndex-$colIndex";
-                                selectedSeats.contains(seatKey)
-                                    ? selectedSeats.remove(seatKey)
-                                    : selectedSeats.add(seatKey);
-                              });
-                            }
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.all(4),
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: seatColor,
-                              border: Border.all(color: Colors.black),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              "${String.fromCharCode(65 + rowIndex)}${colIndex + 1}",
-                              style: TextStyle(fontSize: 12, color: txtColor),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                );
-              }).toList(),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
             ),
           ),
 
           const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: blue,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text("Selected", style: TextStyle(color: black)),
+              const SizedBox(width: 10),
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.black)),
+              ),
+              const SizedBox(width: 10),
+              Text("Available", style: TextStyle(color: black)),
+              const SizedBox(width: 10),
+              Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                      color: grey, borderRadius: BorderRadius.circular(6))),
+              const SizedBox(width: 10),
+              Text("Booked", style: TextStyle(color: black)),
+              const SizedBox(width: 20),
+            ],
+          ),
 
+          const SizedBox(height: 10),
           // 🛒 Checkout & Pay Buttons
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -241,11 +307,13 @@ class _TheatreSeatSelectionScreenState
                 ),
                 onPressed: selectedSeats.isEmpty
                     ? null
-                    : () {
+                    : () async {
+                        // 👈 Add `async` here
                         print("Selected Seats: ${selectedSeats.join(", ")}");
                         print("Selected Date: ${widget.date}");
 
-                        Navigator.push(
+                        // ✅ Wait for CheckoutScreen to finish before refreshing data
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => CheckOutScreen(
@@ -259,6 +327,9 @@ class _TheatreSeatSelectionScreenState
                             ),
                           ),
                         );
+
+                        // 🔥 Re-fetch updated seat layout when coming back
+                        _updateSeatLayout(selectedShowtime);
                       },
                 child: Text(
                   "Pay ₹${calculateTotalPrice()}",
