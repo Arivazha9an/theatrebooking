@@ -1,17 +1,24 @@
 import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
+import 'package:ticket_booking/Screens/BottomNavigation.dart';
+import 'package:ticket_booking/Screens/SelectCity.dart';
 import 'package:ticket_booking/Widgets/GradientButton.dart';
 
 class OtpScreen extends StatefulWidget {
   final String verificationId;
-  final String phoneNumber; // Added to resend OTP
+  final String phoneNumber;
 
   const OtpScreen(
       {super.key, required this.verificationId, required this.phoneNumber});
 
   @override
+  // ignore: library_private_types_in_public_api
   _OtpScreenState createState() => _OtpScreenState();
 }
 
@@ -20,7 +27,7 @@ class _OtpScreenState extends State<OtpScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool isVerifying = false;
   String? verificationId;
-  int _resendTimeout = 30; // Resend timer
+  int _resendTimeout = 30;
   Timer? _timer;
   bool canResendOtp = false;
 
@@ -31,7 +38,6 @@ class _OtpScreenState extends State<OtpScreen> {
     _startResendTimer();
   }
 
-  /// 🎯 Start Resend Timer (30 seconds)
   void _startResendTimer() {
     setState(() {
       _resendTimeout = 30;
@@ -49,7 +55,6 @@ class _OtpScreenState extends State<OtpScreen> {
     });
   }
 
-  /// 📌 Function to verify OTP
   Future<void> verifyOtp() async {
     setState(() => isVerifying = true);
 
@@ -59,10 +64,38 @@ class _OtpScreenState extends State<OtpScreen> {
         smsCode: otpController.text.trim(),
       );
 
-      await _auth.signInWithCredential(credential);
+      UserCredential userCredential =
+          await _auth.signInWithCredential(credential);
+      User? user = userCredential.user;
 
-      // ✅ If successful, show success bottom sheet
-      _showOtpVerifiedBottomSheet();
+      if (user != null) {
+        // Check if user exists in Firestore
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists) {
+          // User exists → Navigate to BottomNavigation
+          String district = userDoc.get('district');
+          String name = userDoc.get('name');
+          Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Bottomnavigation(
+                  districtname: district,
+                  uname: name,
+                ),
+              ));
+        } else {
+          // New user → Navigate to RegisterScreen
+          Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SelectCity(phone: widget.phoneNumber),
+              ));
+        }
+      }
     } catch (e) {
       setState(() => isVerifying = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -71,19 +104,15 @@ class _OtpScreenState extends State<OtpScreen> {
     }
   }
 
-  /// 🔄 Resend OTP Function
   Future<void> resendOtp() async {
     if (!canResendOtp) return;
-
     try {
       await _auth.verifyPhoneNumber(
         phoneNumber: widget.phoneNumber,
         verificationCompleted: (PhoneAuthCredential credential) async {
           await _auth.signInWithCredential(credential);
-          print("Auto sign-in successful");
         },
         verificationFailed: (FirebaseAuthException e) {
-          print("Verification failed: ${e.message}");
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Error: ${e.message}")),
           );
@@ -98,44 +127,14 @@ class _OtpScreenState extends State<OtpScreen> {
           );
         },
         codeAutoRetrievalTimeout: (String verificationId) {
-          setState(() {
-            this.verificationId = verificationId;
-          });
+          this.verificationId = verificationId;
         },
       );
     } catch (e) {
-      print("Resend OTP error: $e");
+      if (kDebugMode) {
+        print("Resend OTP error: $e");
+      }
     }
-  }
-
-  /// 🎉 Bottom Sheet for Success
-  void _showOtpVerifiedBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isDismissible: false,
-      builder: (context) {
-        Future.delayed(const Duration(seconds: 2), () {
-          Navigator.pop(context);
-          Navigator.pushReplacementNamed(
-              context, '/HomeScreen'); // Change to your home screen
-        });
-
-        return Container(
-          padding: const EdgeInsets.all(20),
-          height: 200,
-          width: double.infinity,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.check_circle, color: Colors.green, size: 50),
-              const SizedBox(height: 10),
-              const Text("OTP Verified",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   @override
@@ -153,15 +152,10 @@ class _OtpScreenState extends State<OtpScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Image.asset(
-              'assets/envelope.png', // Replace with your asset image
-              height: 100,
-            ),
+            Center(child: Image.asset('assets/others/otp.png', height: 100)),
             const SizedBox(height: 20),
-            const Text(
-              "Enter OTP Code",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
+            const Text("Enter OTP Code",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             Text("We've sent a code to ${widget.phoneNumber}"),
             const SizedBox(height: 20),
@@ -181,8 +175,6 @@ class _OtpScreenState extends State<OtpScreen> {
               onChanged: (value) {},
             ),
             const SizedBox(height: 20),
-
-            /// 📌 Resend OTP Button
             GestureDetector(
               onTap: canResendOtp ? resendOtp : null,
               child: Row(
@@ -202,26 +194,16 @@ class _OtpScreenState extends State<OtpScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 30),
-
-            /// 📌 Continue Button
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Center(
-                  child: GradientButton(
-                    onPressed: () {
-                      isVerifying
-                          ? null
-                          : () {
-                              verifyOtp(); // Calling the async function correctly
-                            };
-                    },
-                    text: isVerifying ? "Verifying..." : "Continue",
-                  ),
-                ),
-              ],
+            Center(
+              child: GradientButton(
+                onPressed: isVerifying
+                    ? () {}
+                    : () {
+                        verifyOtp();
+                      },
+                text: isVerifying ? "Verifying..." : "Continue",
+              ),
             ),
           ],
         ),

@@ -2,12 +2,13 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:ticket_booking/Screens/fromMovies/seats.dart';
+import 'package:ticket_booking/Screens/booking/seats.dart';
 
 class TheatreListScreen extends StatefulWidget {
   final String movieTitle;
+  final String City;
 
-  const TheatreListScreen({super.key, required this.movieTitle});
+  const TheatreListScreen({super.key, required this.movieTitle, required this.City});
 
   @override
   _TheatreListScreenState createState() => _TheatreListScreenState();
@@ -27,10 +28,12 @@ class _TheatreListScreenState extends State<TheatreListScreen> {
     availableTheatres.clear();
 
     try {
-      DatabaseReference databaseRef = FirebaseDatabase.instance.ref("theatres");
+      DatabaseReference databaseRef = FirebaseDatabase.instance.ref("${widget.City}/theatres");
       DatabaseEvent event = await databaseRef.once();
 
-      print("🔥 Raw Firebase Data: ${event.snapshot.value}");
+      if (kDebugMode) {
+        print("🔥 Raw Firebase Data: ${event.snapshot.value}");
+      }
 
       if (event.snapshot.value != null) {
         Map<String, dynamic> data =
@@ -47,13 +50,19 @@ class _TheatreListScreenState extends State<TheatreListScreen> {
             if (movieData.containsKey("showtimes")) {
               List<dynamic> availableDates =
                   movieData["showtimes"].keys.toList();
-              print("📅 Available Dates in Firebase: $availableDates");
-              print("📅 Selected Date: $selectedDate");
+              if (kDebugMode) {
+                print("📅 Available Dates in Firebase: $availableDates");
+              }
+              if (kDebugMode) {
+                print("📅 Selected Date: $selectedDate");
+              }
 
               if (availableDates.contains(selectedDate)) {
                 var showtimesForDate = movieData["showtimes"][selectedDate];
 
-                print("✅ Showtimes for $selectedDate: $showtimesForDate");
+                if (kDebugMode) {
+                  print("✅ Showtimes for $selectedDate: $showtimesForDate");
+                }
 
                 // ✅ Ensure showtimes is always a Map<String, dynamic>
                 Map<String, dynamic> safeShowtimes = {};
@@ -86,15 +95,23 @@ class _TheatreListScreenState extends State<TheatreListScreen> {
           setState(() {
             availableTheatres = theatreMap.values.toList();
           });
-          print("🎭 Available Theatres Updated: $availableTheatres");
+          if (kDebugMode) {
+            print("🎭 Available Theatres Updated: $availableTheatres");
+          }
         } else {
-          print("⚠️ No matching theatres found!");
+          if (kDebugMode) {
+            print("⚠️ No matching theatres found!");
+          }
         }
       } else {
-        print("⚠️ Firebase returned null!");
+        if (kDebugMode) {
+          print("⚠️ Firebase returned null!");
+        }
       }
     } catch (e) {
-      print("🔥 Error fetching theatre data: $e");
+      if (kDebugMode) {
+        print("🔥 Error fetching theatre data: $e");
+      }
     }
   }
 
@@ -208,9 +225,13 @@ class _TheatreListScreenState extends State<TheatreListScreen> {
                           subtitle: Text(theatre["location"]),
                           trailing: const Icon(Icons.arrow_forward_ios),
                          onTap: () {
-                            print("🎟️ Selected Date: $selectedDate");
-                            print(
+                            if (kDebugMode) {
+                              print("🎟️ Selected Date: $selectedDate");
+                            }
+                            if (kDebugMode) {
+                              print(
                                 "🔥 Raw Showtime Data: ${theatre["showtimes"]}");
+                            }
 
                             // ✅ Fix: Ensure `showtimes` is a Map
                             Map<String, dynamic> selectedShowtimeData = {};
@@ -227,13 +248,31 @@ class _TheatreListScreenState extends State<TheatreListScreen> {
                                     theatre["showtimes"][i];
                               }
                             } else {
-                              print(
+                              if (kDebugMode) {
+                                print(
                                   "⚠️ Unexpected showtime format! Received: ${theatre["showtimes"]}");
+                              }
                             }
 
-                            print(
+                            if (kDebugMode) {
+                              print(
                                 "✅ Processed Showtime Data: $selectedShowtimeData");
-
+                            }
+                                if (kDebugMode) {
+                                  print(theatre["name"]);
+                                }
+                            if (kDebugMode) {
+                              print(selectedShowtimeData);
+                            }
+                            if (kDebugMode) {
+                              print(widget.movieTitle);
+                            }
+                            if (kDebugMode) {
+                              print(selectedDate);
+                            }
+                            if (kDebugMode) {
+                              print(theatre["tax"] + 10);
+                            }
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -244,6 +283,7 @@ class _TheatreListScreenState extends State<TheatreListScreen> {
                                       selectedShowtimeData, // ✅ Pass Corrected Data
                                   movie: widget.movieTitle,
                                   date: selectedDate,
+                                  bookingCharge: theatre["tax"], City: widget.City,
                                 ),
                               ),
                             );

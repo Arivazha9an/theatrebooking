@@ -14,7 +14,7 @@ class CustomZigZag extends StatelessWidget {
     this.height = 2,
     this.zigzagHeight = 6,
     this.zigzagWidth = 10,
-    this.color = Colors.black,
+    this.color = Colors.transparent,
     this.backgroundColor = Colors.white,
   });
 

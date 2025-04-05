@@ -1,51 +1,53 @@
-import 'dart:developer';
 import 'package:animated_notch_bottom_bar/animated_notch_bottom_bar/animated_notch_bottom_bar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:ticket_booking/Screens/ComingSoon.dart';
-import 'package:ticket_booking/Screens/HomeScreen.dart';
-import 'package:ticket_booking/Screens/TheatreScreen.dart';
+import 'package:ticket_booking/Screens/Index/ComingSoon.dart';
+import 'package:ticket_booking/Screens/Index/HomeScreen.dart';
+import 'package:ticket_booking/Screens/Index/TheatreScreen.dart';
 import 'package:ticket_booking/const/colors.dart';
-import 'UserProfile.dart';
+import 'Index/UserProfile.dart';
 
 class Bottomnavigation extends StatefulWidget {
-  const Bottomnavigation({super.key});
+  final String districtname;
+  final String uname;
+
+  const Bottomnavigation(
+      {super.key, required this.districtname, required this.uname});
 
   @override
   State<Bottomnavigation> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<Bottomnavigation> {
-  final _pageController = PageController(initialPage: 0);
-
   final NotchBottomBarController _controller =
       NotchBottomBarController(index: 0);
+  int _currentIndex = 0; // Store selected index
+  final int maxCount = 5;
 
-  int maxCount = 5;
+  // Store pages to keep them in memory
+  late List<Widget> bottomBarPages;
 
   @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    bottomBarPages = [
+      HomeScreen(
+        controller: NotchBottomBarController(index: 0),
+        userName: widget.uname,
+        location: widget.districtname,
+      ),
+      TheaterScreen(userName: widget.uname, location: widget.districtname),
+      ComingSoonScreen(),
+      AccountScreen(),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> bottomBarPages = [
-      HomeScreen(controller: _controller),
-      TheaterScreen(
-        userName: '',
-        location: '',
-      ),
-      ComingSoonScreen(),
-      AccountScreen(),
-    ];
     return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(),
-        children: List.generate(
-            bottomBarPages.length, (index) => bottomBarPages[index]),
+      body: IndexedStack(
+        index: _currentIndex, // Keeps the last visited screen
+        children: bottomBarPages,
       ),
       extendBody: true,
       bottomNavigationBar: (bottomBarPages.length <= maxCount)
@@ -54,19 +56,9 @@ class _MyHomePageState extends State<Bottomnavigation> {
               color: blue,
               showLabel: true,
               textOverflow: TextOverflow.visible,
-              maxLine: 1,
               shadowElevation: 1,
               kBottomRadius: 6.0,
-
-              // notchShader: const SweepGradient(
-              //   startAngle: 0,
-              //   endAngle: pi / 2,
-              //   colors: [Colors.red, Colors.green, Colors.orange],
-              //   tileMode: TileMode.mirror,
-              // ).createShader(Rect.fromCircle(center: Offset.zero, radius: 8.0)),
               notchColor: blue,
-
-              /// restart app if you change removeMargins
               removeMargins: true,
               bottomBarWidth: 450,
               showShadow: true,
@@ -75,49 +67,28 @@ class _MyHomePageState extends State<Bottomnavigation> {
               elevation: 0,
               bottomBarItems: const [
                 BottomBarItem(
-                  inActiveItem: Icon(
-                    Icons.home_rounded,
-                    color: amber,
-                    size: 26,
-                  ),
-                  activeItem: Icon(
-                    Icons.home_rounded,
-                    color: amber,
-                    size: 26,
-                  ),
+                  inActiveItem:
+                      Icon(Icons.home_rounded, color: amber, size: 26),
+                  activeItem: Icon(Icons.home_rounded, color: amber, size: 26),
                 ),
                 BottomBarItem(
                   inActiveItem:
                       Icon(CupertinoIcons.videocam_fill, color: amber),
-                  activeItem: Icon(
-                    CupertinoIcons.videocam_fill,
-                    color: amber,
-                  ),
+                  activeItem: Icon(CupertinoIcons.videocam_fill, color: amber),
                 ),
                 BottomBarItem(
-                  inActiveItem: Icon(
-                    Icons.calendar_month,
-                    color: amber,
-                  ),
-                  activeItem: Icon(
-                    Icons.calendar_month,
-                    color: amber,
-                  ),
+                  inActiveItem: Icon(Icons.calendar_month, color: amber),
+                  activeItem: Icon(Icons.calendar_month, color: amber),
                 ),
                 BottomBarItem(
-                  inActiveItem: Icon(
-                    CupertinoIcons.person_fill,
-                    color: amber,
-                  ),
-                  activeItem: Icon(
-                    CupertinoIcons.person_fill,
-                    color: amber,
-                  ),
+                  inActiveItem: Icon(CupertinoIcons.person_fill, color: amber),
+                  activeItem: Icon(CupertinoIcons.person_fill, color: amber),
                 ),
               ],
               onTap: (index) {
-                log('current selected index $index');
-                _pageController.jumpToPage(index);
+                setState(() {
+                  _currentIndex = index; // Switch without reloading
+                });
               },
               kIconSize: 24.0,
             )

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:ticket_booking/Auth/VerifyPhone.dart';
+import 'package:ticket_booking/Screens/BottomNavigation.dart';
 import 'package:ticket_booking/Widgets/GradientButton.dart';
 import 'package:ticket_booking/const/colors.dart';
 
 class IntroScreen extends StatefulWidget {
-  const IntroScreen({super.key});
+  final String districtname;
+  final String uname;
+  const IntroScreen({super.key, required this.districtname, required this.uname});
 
   @override
   _IntroScreenState createState() => _IntroScreenState();
@@ -25,10 +28,14 @@ class _IntroScreenState extends State<IntroScreen> {
         currentIndex++;
       });
     } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const PhoneVerificationScreen()),
-      );
+     Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Bottomnavigation(
+              districtname: widget.districtname,
+              uname: widget.uname,
+            ),
+          ));
     }
   }
 
@@ -138,14 +145,4 @@ class _IntroScreenState extends State<IntroScreen> {
   }
 }
 
-class MainPage extends StatelessWidget {
-  const MainPage({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Main Page")),
-      body: const Center(child: Text("Welcome to Main Page!")),
-    );
-  }
-}

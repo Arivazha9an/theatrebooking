@@ -1,8 +1,10 @@
+import 'package:cherry_toast/cherry_toast.dart';
+import 'package:cherry_toast/resources/arrays.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ticket_booking/Auth/OtpScreen.dart';
 import 'package:ticket_booking/const/colors.dart';
-
 
 class PhoneVerificationScreen extends StatefulWidget {
   const PhoneVerificationScreen({super.key});
@@ -15,39 +17,71 @@ class PhoneVerificationScreen extends StatefulWidget {
 class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   final TextEditingController phoneController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  late String phoneNumber = '';
 
   void verifyPhoneNumber() async {
-    String phoneNumber =
-        "+91${phoneController.text.trim()}"; // Change country code if needed
+    phoneNumber = "+91${phoneController.text.trim()}";
 
-    await _auth.verifyPhoneNumber(
-      phoneNumber: phoneNumber,
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        await _auth.signInWithCredential(credential);
-        print("Auto sign-in successful");
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        print("Verification failed: ${e.message}");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${e.message}")),
-        );
-      },
-      codeSent: (String verificationId, int? resendToken) {
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => OtpScreen(
-              verificationId: verificationId,
-              phoneNumber: phoneController.text
-                  .trim(), // Pass phone number for resending
+    if (phoneController.text.length < 10 ||
+        phoneController.text.isEmpty ||
+        phoneController.text.length > 10) {
+      CherryToast.error(
+        title: const Text("Please enter a valid phone number"),
+        autoDismiss: true,
+        animationDuration: const Duration(milliseconds: 300),
+        toastPosition: Position.bottom,
+      ).show(context);
+      return;
+    } else {
+      await _auth.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          CherryToast.success(
+            title: Text("✅ Auto sign-in successful"),
+            autoDismiss: true,
+            animationDuration: const Duration(milliseconds: 300),
+            toastPosition: Position.bottom,
+          ).show(context);
+          await _auth.signInWithCredential(credential);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          if (kDebugMode) {
+            print("🚨 Verification failed: ${e.message}");
+          }
+          CherryToast.error(
+            title: Text("Error: ${e.message}"),
+            autoDismiss: true,
+            animationDuration: const Duration(milliseconds: 300),
+            toastPosition: Position.bottom,
+          ).show(context);
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          CherryToast.success(
+            title: Text("📩 OTP Sent Successfully to $phoneNumber"),
+            autoDismiss: true,
+            animationDuration: const Duration(milliseconds: 300),
+            toastPosition: Position.bottom,
+          ).show(context);
+          if (kDebugMode) {
+            print("📩 OTP Sent. Verification ID: $verificationId");
+          }
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OtpScreen(
+                verificationId: verificationId,
+                phoneNumber: phoneNumber,
+              ),
             ),
-          ),
-        );
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {
-        print("Code auto-retrieval timed out");
-      },
-    );
+          );
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          if (kDebugMode) {
+            print("⏳ Code auto-retrieval timed out");
+          }
+        },
+      );
+    }
   }
 
   @override
@@ -94,7 +128,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                     keyboardType: TextInputType.phone,
                     decoration: InputDecoration(
                       labelText: "Phone number",
-                      prefixText: "+91 ", // Change prefix for other countries
+                      prefixText: "+91 ",
                       suffixIcon: const Icon(Icons.phone),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -112,7 +146,10 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      onPressed: verifyPhoneNumber,
+                      onPressed: () {
+                        verifyPhoneNumber();
+                        print("Phone number: ${phoneNumber}");
+                      },
                       child: Ink(
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(

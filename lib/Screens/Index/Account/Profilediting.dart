@@ -1,11 +1,18 @@
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:ticket_booking/Screens/BottomNavigation.dart';
 
 class EditProfileScreen extends StatefulWidget {
+  final String userId;
   final Map<String, dynamic> userProfile;
 
-  const EditProfileScreen({super.key, required this.userProfile});
+  const EditProfileScreen(
+      {super.key, required this.userId, required this.userProfile});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -19,6 +26,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController dobController;
   late TextEditingController maritalStatusController;
   File? profilePic;
+  String? profilePicUrl; // Store the uploaded image URL
 
   @override
   void initState() {
@@ -30,8 +38,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         TextEditingController(text: widget.userProfile["gender"]);
     dobController = TextEditingController(text: widget.userProfile["dob"]);
     maritalStatusController =
-        TextEditingController(text: widget.userProfile["maritalStatus"]);
-    profilePic = widget.userProfile["profilePic"];
+        TextEditingController(text: widget.userProfile["marital_status"]);
+    profilePicUrl = widget.userProfile["profile_picture"];
   }
 
   @override
@@ -45,18 +53,78 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  void _saveChanges() {
-    Navigator.pop(context, {
-      "name": nameController.text,
-      "phone": phoneController.text,
-      "email": emailController.text,
-      "gender": genderController.text,
-      "dob": dobController.text,
-      "maritalStatus": maritalStatusController.text,
-      "anniversary": widget.userProfile["anniversary"], // Keep unchanged
-      "profilePic": profilePic, // New profile picture
-    });
+  Future<void> _saveChanges() async {
+    try {
+      if (profilePic != null) {
+        // Upload the new profile picture and get the URL
+        profilePicUrl = await _uploadImage(profilePic!);
+      }
+
+      final updatedProfile = {
+        "name": nameController.text,
+        "phone": phoneController.text,
+        "email": emailController.text,
+        "gender": genderController.text,
+        "dob": dobController.text,
+        "marital_status": maritalStatusController.text,
+        "created_at": widget.userProfile["created_at"], // Keep unchanged
+        "profile_picture": profilePicUrl, // Updated profile picture URL
+      };
+
+      // Update Firestore
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(widget.userId)
+          .update(updatedProfile);
+
+      // Return the updated data to the previous screen
+       Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => Bottomnavigation(districtname: widget.userProfile["district"], uname: widget.userProfile["name"],)),
+        (route) => false, // Removes all previous screens
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error updating profile: $e");
+      }
+    }
   }
+
+ Future<String> _uploadImage(File imageFile) async {
+    try {
+      String userId = FirebaseAuth.instance.currentUser!.uid;
+      String fileName = "profile.jpg";
+      Reference ref = FirebaseStorage.instance
+          .ref()
+          .child("profile_pictures/$userId/$fileName");
+
+      // Delete old profile picture if it exists
+      if (profilePicUrl != null && profilePicUrl!.isNotEmpty) {
+        try {
+          await FirebaseStorage.instance.refFromURL(profilePicUrl!).delete();
+          if (kDebugMode) {
+            print("Old profile picture deleted successfully.");
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print("Error deleting old profile picture: $e");
+          }
+        }
+      }
+
+      // Upload new image
+      UploadTask uploadTask = ref.putFile(imageFile);
+      TaskSnapshot snapshot = await uploadTask;
+      return await snapshot.ref.getDownloadURL(); // Get new image URL
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error uploading image: $e");
+      }
+      return widget.userProfile["profile_picture"] ??
+          ""; // Return existing URL if upload fails
+    }
+  }
+
 
   Future<void> _pickImage() async {
     final pickedFile =
@@ -95,8 +163,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               child: CircleAvatar(
                 radius: 70,
                 backgroundImage: profilePic != null
-                    ? FileImage(profilePic!) // Selected image
-                    : const NetworkImage("https://i.pravatar.cc/300")
+                    ? FileImage(profilePic!) // Show picked image
+                    : (profilePicUrl != null && profilePicUrl!.isNotEmpty
+                            ? NetworkImage(
+                                profilePicUrl!) // Show existing profile image
+                            : const AssetImage("assets/images/profile.png"))
                         as ImageProvider,
                 child: const Align(
                   alignment: Alignment.bottomRight,

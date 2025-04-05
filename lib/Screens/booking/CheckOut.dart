@@ -1,22 +1,34 @@
+// ignore: file_names
+// import 'dart:ffi';
+
+import 'package:cherry_toast/cherry_toast.dart';
+import 'package:cherry_toast/resources/arrays.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
-import 'package:ticket_booking/Screens/TicketQR.dart';
+import 'package:ticket_booking/Screens/booking/TicketQR.dart';
 import 'package:ticket_booking/Widgets/CustomDivider.dart';
 import 'package:ticket_booking/const/colors.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class CheckOutScreen extends StatefulWidget {
   final String theatreName;
   final String showTime;
   final List<String> selectedSeats;
   final double totalPrice;
-  final int noofSeats;
+  final String noofSeats;
   final String movieTitle;
   final String selectedDate;
+  final int bookingCharge;
+  final String City;
+  final List<String> selectedSeats1;
 
   const CheckOutScreen({
     super.key,
+    required this.City,
     required this.theatreName,
     required this.showTime,
     required this.selectedSeats,
@@ -24,6 +36,8 @@ class CheckOutScreen extends StatefulWidget {
     required this.noofSeats,
     required this.movieTitle,
     required this.selectedDate,
+    required this.bookingCharge,
+    required this.selectedSeats1,
   });
 
   @override
@@ -32,8 +46,8 @@ class CheckOutScreen extends StatefulWidget {
 
 class _CheckOutScreenState extends State<CheckOutScreen> {
   late Map<String, dynamic> movieData;
-  int bookingCharge = 10;
-  late num taxRate;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  late double taxRate;
   bool isLoading = true;
 
   @override
@@ -50,7 +64,8 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
 
   /// 🔥 Fetch movie & theatre data from Firebase
   Future<void> _fetchMovieData() async {
-    DatabaseReference dbRef = FirebaseDatabase.instance.ref("theatres");
+    DatabaseReference dbRef =
+        FirebaseDatabase.instance.ref("${widget.City}/theatres");
 
     try {
       DatabaseEvent event = await dbRef.once();
@@ -63,15 +78,19 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
           setState(() {
             movieData =
                 Map<String, dynamic>.from(theatre["movies"][widget.movieTitle]);
-            bookingCharge = theatre["tax"] ?? 20; // Default ₹20
-            taxRate = bookingCharge * 0.18; // 18% tax
+            double bookingCharge = widget.bookingCharge.toDouble();
+            taxRate = double.parse((bookingCharge * 0.18).toStringAsFixed(1));
+
             isLoading = false;
           });
+
           return;
         }
       }
     } catch (error) {
-      print("Error fetching movie data: $error");
+      if (kDebugMode) {
+        print("Error fetching movie data: $error");
+      }
     }
 
     setState(() {
@@ -79,89 +98,171 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
     });
   }
 
-  Future<void> _updateSeatsInFirebase() async {
+  Future<void> _storeBooking() async {
     try {
-      // 🔍 Step 1: Get All Theatres
-      DatabaseReference theatreRef = FirebaseDatabase.instance.ref("theatres");
-      DatabaseEvent theatreEvent = await theatreRef.once();
+      formatSeats(widget.selectedSeats);
+      List<String> formattedSeats1 = widget.selectedSeats1;
+      await FirebaseFirestore.instance
+          .collection('bookings')
+          .doc(generateOrderId())
+          .set({
+        "theatreName": widget.theatreName,
+        "movieName": movieData["title"],
+        "showTime": widget.showTime,
+        "selectedSeats": formattedSeats1,
+        "totalPrice": finalTotalPrice.toString(),
+        "noofSeats": widget.noofSeats.toString(),
+        "movieLanguage": movieData["language"],
+        "date": widget.selectedDate,
+        "movieFormat": movieData["format"],
+        "movieImage": movieData["poster"],
+        "likes": movieData["rating"],
+        "timestamp": FieldValue.serverTimestamp(), // Store time of booking
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error: $e");
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Store failed: $e")),
+      );
+    }
 
-      Map<String, dynamic> allTheatres =
-          Map<String, dynamic>.from(theatreEvent.snapshot.value as Map);
+    setState(() => isLoading = false);
+  }
 
-      print("🎭 Available Theatres: ${allTheatres.keys}");
+  Future<void> _storeOrderID() async {
+    try {
+      User? user = _auth.currentUser;
+     DocumentReference bookingRef1 =  FirebaseFirestore.instance.collection('orders').doc(user?.uid);
+      Map<String, dynamic> orderId = {
+        "ordeId": generateOrderId(),       
+      };
+        await bookingRef1.set({
+        "Orders": FieldValue.arrayUnion([orderId])
+      }, SetOptions(merge: true));
+    //  .set({
+    //     "orderId": generateOrderId(),
+    //     // Store time of booking
+    //   });
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error: $e");
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Store failed: $e")),
+      );
+    }
 
-      // 🛠 Step 2: Format Firebase Path
+    setState(() => isLoading = false);
+  }
+
+  Future<void> _storeOrderResult() async {
+    try {
+      User? user = _auth.currentUser;
+      if (user == null) throw "User not logged in";
+
+      DocumentReference bookingRef =
+          FirebaseFirestore.instance.collection('bookingHistory').doc(user.uid);
+
+      Map<String, dynamic> bookingResult = {
+        "movie": movieData["title"],
+        "date": widget.selectedDate,
+        "status": "Booking Successfully",
+        "price": "₹${finalTotalPrice.toString()}",
+        "poster": movieData["poster"],
+      };
+
+      await bookingRef.set({
+        "history": FieldValue.arrayUnion([bookingResult])
+      }, SetOptions(merge: true));
+
+      print("✅ Booking result added to history");
+    } catch (e) {
+      print("❌ Error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Store failed: $e")),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  Future<bool> _updateSeatsInFirebase() async {
+    try {
       String theatreKey = widget.theatreName.replaceAll(" ", "");
       String movieKey = widget.movieTitle.toUpperCase().replaceAll(" ", "_");
-
       String firebasePath =
-          "theatres/$theatreKey/movies/$movieKey/showtimes/${widget.selectedDate}/${widget.showTime}/layout";
-
-      print("🎯 Fetching seat layout from: $firebasePath");
+          "${widget.City}/theatres/$theatreKey/movies/$movieKey/showtimes/${widget.selectedDate}/${widget.showTime}/layout";
 
       DatabaseReference seatsRef = FirebaseDatabase.instance.ref(firebasePath);
       DatabaseEvent event = await seatsRef.once();
 
-      // 🚨 Step 3: Handle Missing Data
       if (event.snapshot.value == null) {
-        print("🚨 Seat layout not found! Check database structure.");
-        return;
+        CherryToast.error(
+          title: Text("Seat layout not found!"),
+          animationType: AnimationType.fromRight,
+        ).show(context);
+        return true; // 🚫 Prevents navigation since data is missing
       }
 
-      // ✅ Convert Firebase Data to a Proper List<List<String>>
       var snapshot = event.snapshot.value;
       List<List<String>> seatLayout = (snapshot as List<dynamic>)
           .map((row) =>
               (row as List<dynamic>).map((seat) => seat.toString()).toList())
           .toList();
 
-      print("🎭 Seat Layout Before Update: $seatLayout");
+      List<String> bookedSeats = [];
+      List<String> alreadyBookedSeats = [];
 
-      // 🔥 Step 4: Update Selected Seats
       for (String seat in widget.selectedSeats) {
-        // ✅ Fix: Convert seat format if necessary (Handles "0-0" cases)
         if (seat.contains("-")) {
           List<String> parts = seat.split("-");
           int rowNumber = int.parse(parts[0]);
           int colNumber = int.parse(parts[1]);
 
           seat = "${String.fromCharCode(65 + rowNumber)}${colNumber + 1}";
-          print("🔄 Converted Seat: $seat");
         }
 
-        // 🔢 Convert Seat to Row & Column
-        int row = seat.codeUnitAt(0) - 65; // 'A' → 0, 'B' → 1, etc.
+        int row = seat.codeUnitAt(0) - 65;
         int col = int.parse(seat.substring(1)) - 1;
 
-        // ✅ Prevent Out-of-Bounds Errors
         if (row < 0 ||
             row >= seatLayout.length ||
             col < 0 ||
             col >= seatLayout[row].length) {
-          print("🚨 Seat $seat is out of bounds! Row: $row, Col: $col");
           continue;
         }
 
-        // ✅ Check if Seat is Available
         if (seatLayout[row][col] == "S" || seatLayout[row][col] == "V") {
           seatLayout[row][col] = "B"; // Mark as booked
-          print("✅ Seat $seat booked successfully!");
+          bookedSeats.add(seat);
         } else {
-          print("⚠️ Seat $seat is already booked.");
+          alreadyBookedSeats.add(seat);
         }
       }
 
-      // 🎭 Debug: Show Updated Layout
-      print("🎭 Seat Layout After Update: $seatLayout");
+      // 🎯 If all seats are already booked, return true to stop navigation
+      if (alreadyBookedSeats.length == widget.selectedSeats.length) {
+        CherryToast.warning(
+          title: Text("Seats already booked: ${alreadyBookedSeats.join(", ")}"),
+        ).show(context);
+        return true;
+      }
 
-      // 🔥 Step 5: Write Updated Data to Firebase
-      await seatsRef.set(seatLayout).then((_) {
-        print("🔥 Data successfully updated in Firebase!");
-      }).catchError((error) {
-        print("🚨 Firebase Write Error: $error");
-      });
+      if (bookedSeats.isNotEmpty) {
+        await seatsRef.set(seatLayout);
+        CherryToast.success(
+          title: Text("Seats booked: ${bookedSeats.join(", ")}"),
+        ).show(context);
+      }
+
+      return false; // ✅ Seats were booked successfully, allow navigation
     } catch (e) {
-      print("🔥 Error updating seats: $e");
+      CherryToast.error(
+        title: Text("Seat Booking Failed: $e"),
+      ).show(context);
+      return true; // 🚫 Prevents navigation in case of errors
     }
   }
 
@@ -181,7 +282,8 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
   }
 
   /// ✅ Calculate final price with taxes
-  num get finalTotalPrice => widget.totalPrice + bookingCharge + (taxRate * 2);
+  num get finalTotalPrice =>
+      widget.totalPrice + widget.bookingCharge + (taxRate * 2);
 
   @override
   Widget build(BuildContext context) {
@@ -196,9 +298,8 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
         body: const Center(child: Text("Movie data not found!")),
       );
     }
-
-    List<String> formattedSeats = formatSeats(widget.selectedSeats);
-
+    formatSeats(widget.selectedSeats);
+    List<String> formattedSeats1 = widget.selectedSeats1;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -222,7 +323,6 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
               ),
               child: Column(
                 children: [
-                  const SizedBox(height: 25),
                   Padding(
                     padding: const EdgeInsets.all(20.0),
                     child: Row(
@@ -247,22 +347,30 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
                                     fontWeight: FontWeight.bold, fontSize: 16),
                               ),
                               const SizedBox(height: 40),
-                              Text(
-                                  '${movieData["rating"]} • ${movieData["language"]} • ${movieData["format"]}',
-                                  style: const TextStyle(color: Colors.grey)),
+                              Row(
+                                children: [
+                                  Icon(
+                                    CupertinoIcons.heart_solid,
+                                    color: Colors.red,
+                                  ),
+                                  Text(
+                                      '${movieData["rating"]}% • ${movieData["language"]} • ${movieData["format"]}',
+                                      style:
+                                          const TextStyle(color: Colors.grey)),
+                                ],
+                              ),
                             ],
                           ),
                         )
                       ],
                     ),
                   ),
-                  const SizedBox(height: 25),
+                  const SizedBox(height: 10),
                   TicketDivider(
                       height: 10,
                       dashWidth: 8,
                       dashHeight: 2,
                       color: Colors.grey),
-                  const SizedBox(height: 10),
                   Padding(
                     padding: const EdgeInsets.all(20.0),
                     child: Row(
@@ -278,7 +386,7 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
                             const SizedBox(height: 10),
                             Wrap(
                               spacing: 8,
-                              children: formattedSeats.map((seat) {
+                              children: formattedSeats1.map((seat) {
                                 return Container(
                                   padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
@@ -316,17 +424,26 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 25),
+                  const SizedBox(height: 10),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 15),
 
             // 📜 Booking Details
-            _buildDetailRow('Seats', formattedSeats.join(", ")),
+            Text(
+              "Booking Details",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            _buildDetailRow('Seats', formattedSeats1.join(", ")),
             _buildDetailRow('${widget.noofSeats} X Tickets',
                 '₹${widget.totalPrice.toStringAsFixed(2)}'),
-            _buildDetailRow('Booking Charge', '₹$bookingCharge'),
+            Divider(
+              color: grey,
+              thickness: 5,
+            ),
+            _buildDetailRow('Booking Charge', '₹${widget.bookingCharge}'),
+            _buildDetailRow('GST', '₹${taxRate.toStringAsFixed(2)}'),
             _buildDetailRow(
                 'Total Amount', '₹${finalTotalPrice.toStringAsFixed(2)}'),
             Spacer(
@@ -346,28 +463,43 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                 ),
                 onPressed: () async {
-                  await _updateSeatsInFirebase();
-                }
-                //() {
-                //   Navigator.push(
-                //       context,
-                //       MaterialPageRoute(
-                //         builder: (context) => TicketScreen(
-                //           theatreName: widget.theatreName,
-                //           movieName: movieData["title"],
-                //           showTime: widget.showTime,
-                //           selectedSeats: formattedSeats,
-                //           totalPrice: finalTotalPrice.toInt(),
-                //           noofSeats: widget.noofSeats,
-                //           movieLanguage: movieData["language"],
-                //           date: widget.selectedDate,
-                //           movieFormat: movieData["format"],
-                //           movieImage: movieData["poster"],
-                //           orderId: generateOrderId(),
-                //         ),
-                //       ));
-                // }
-                ,
+                  try {
+                    bool allSeatsBooked = await _updateSeatsInFirebase();
+                    if (allSeatsBooked) {
+                      return; // 🚫 Stop navigation if all seats are already booked
+                    }
+                    await _storeBooking();
+                    await _storeOrderID();
+                    await _storeOrderResult();
+
+                    if (!mounted) {
+                      return; // Ensure widget is still in the tree before navigating
+                    }
+                    // Navigate to the TicketScreen
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TicketScreen(
+                          theatreName: widget.theatreName,
+                          movieName: movieData["title"],
+                          showTime: widget.showTime,
+                          selectedSeats: formattedSeats1,
+                          totalPrice: finalTotalPrice.toString(),
+                          noofSeats: widget.noofSeats.toString(),
+                          movieLanguage: movieData["language"],
+                          date: widget.selectedDate,
+                          movieFormat: movieData["format"],
+                          movieImage: movieData["poster"],
+                          orderId: generateOrderId(),
+                          likes: movieData["rating"],
+                        ),
+                      ),
+                    );
+                  } catch (e) {
+                    CherryToast.error(title: Text("Something went wrong: $e"))
+                        .show(context);
+                  }
+                },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Row(
@@ -396,12 +528,14 @@ class _CheckOutScreenState extends State<CheckOutScreen> {
 
   Widget _buildDetailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 16)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(label, style: const TextStyle(fontSize: 14)),
+          Text(value,
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
         ],
       ),
     );
